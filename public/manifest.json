@@ -1,0 +1,34 @@
+{
+    "name": "PHYSICS COOLNUT - Physics Learning Platform",
+    "short_name": "PHYSICS COOLNUT",
+    "description": "แพลตฟอร์มการเรียนรู้วิชาฟิสิกส์สำหรับนักเรียน",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f0f4f8",
+    "theme_color": "#2563eb",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ],
+    "categories": [
+        "education",
+        "physics",
+        "learning"
+    ],
+    "lang": "th"
+}
