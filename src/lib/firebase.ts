@@ -1,9 +1,9 @@
-// Firebase Configuration for HONGSON THE ONE
+// Firebase Configuration for PHYSICS COOLNUT
 // ============================================
 // This file initializes the Firebase app and exports Firestore and Storage instances.
 
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getFirestore, Firestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
 
 // Firebase configuration object
@@ -23,11 +23,15 @@ const app: FirebaseApp = !getApps().length
   ? initializeApp(firebaseConfig)
   : getApp();
 
-// Initialize Firestore Database
-const db: Firestore = getFirestore(app);
+// Initialize Firestore Database with persistent cache
+// Using the new FirestoreSettings.cache approach (v10.7+)
+const db: Firestore = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
 
 // Initialize Firebase Storage
 const storage: FirebaseStorage = getStorage(app);
 
 export { app, db, storage };
-
