@@ -26,7 +26,7 @@ function toAppData(doc: AppDocument): AppData {
 }
 
 export default function HomeContent() {
-    const [currentZone, setCurrentZone] = useState<Zone>("teacher");
+    const [currentZone, setCurrentZone] = useState<Zone>("student");
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [apps, setApps] = useState<AppData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
