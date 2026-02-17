@@ -34,18 +34,16 @@ export default function HomeContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // Fetch apps from Firestore with caching
-    const fetchApps = useCallback(async (forceRefresh = false) => {
+    // Fetch apps from Firestore - ALWAYS from database
+    const fetchApps = useCallback(async () => {
         try {
             setError("");
-            const startTime = performance.now();
-            const fetchedApps = await getApps(forceRefresh);
-            const endTime = performance.now();
-            console.log(`Data loaded in ${(endTime - startTime).toFixed(0)}ms`);
+            const fetchedApps = await getApps();
+            console.log(`Loaded ${fetchedApps.length} items from database`);
             setApps(fetchedApps.map(toAppData));
         } catch (err) {
             console.error("Failed to fetch apps:", err);
-            setError("ไม่สามารถโหลดข้อมูลได้");
+            setError("ไม่สามารถโหลดข้อมูลจากฐานข้อมูลได้");
         } finally {
             setIsLoading(false);
         }
@@ -147,7 +145,7 @@ export default function HomeContent() {
                         {/* Action Buttons - Right Side */}
                         <div className="relative z-10 flex items-center gap-2">
                             <button
-                                onClick={() => fetchApps(true)}
+                                onClick={fetchApps}
                                 className="glass-button p-2.5 rounded-xl"
                                 title="รีเฟรช"
                             >
@@ -203,7 +201,7 @@ export default function HomeContent() {
                             </div>
                             <p className="text-rose-600 mt-4 mb-4 font-medium">{error}</p>
                             <button
-                                onClick={() => fetchApps(true)}
+                                onClick={fetchApps}
                                 className="glass-button-primary px-6 py-3 rounded-xl font-medium"
                             >
                                 ลองใหม่อีกครั้ง

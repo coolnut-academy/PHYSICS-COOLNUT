@@ -1,6 +1,6 @@
 // Firestore Database Helper Functions
 // ============================================
-// CRUD operations for app management with caching
+// CRUD operations for app management - NO CACHE, direct to database
 
 import {
     collection,
@@ -14,18 +14,11 @@ import {
     orderBy,
     writeBatch,
     Timestamp,
-    getDocsFromCache,
-    getDocsFromServer,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
 // Collection name for apps
 const APPS_COLLECTION = "apps";
-
-// Simple memory cache
-let appsCache: AppDocument[] | null = null;
-let lastFetchTime = 0;
-const CACHE_DURATION = 30000; // 30 seconds
 
 // App data interface matching the existing AppData type
 export interface AppDocument {
@@ -43,59 +36,27 @@ export interface AppDocument {
 
 /**
  * Get all apps from Firestore, ordered by 'order' field
- * Uses cache first strategy for better performance
+ * ALWAYS fetch from server - no caching
  */
-export async function getApps(forceRefresh = false): Promise<AppDocument[]> {
-    const now = Date.now();
-    
-    // Return memory cache if valid
-    if (!forceRefresh && appsCache && (now - lastFetchTime) < CACHE_DURATION) {
-        console.log("Using memory cache");
-        return appsCache;
-    }
-
+export async function getApps(): Promise<AppDocument[]> {
     try {
         const appsRef = collection(db, APPS_COLLECTION);
         const q = query(appsRef, orderBy("order", "asc"));
         
-        // Try cache first
-        let snapshot;
-        try {
-            snapshot = await getDocsFromCache(q);
-            console.log("Using Firestore cache");
-        } catch {
-            // Fall back to server
-            snapshot = await getDocsFromServer(q);
-            console.log("Using Firestore server");
-        }
+        // ALWAYS fetch from server, never use cache
+        const snapshot = await getDocs(q);
 
         const apps = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
         })) as AppDocument[];
 
-        // Update memory cache
-        appsCache = apps;
-        lastFetchTime = now;
-
+        console.log(`Fetched ${apps.length} apps from database`);
         return apps;
     } catch (error) {
         console.error("Error fetching apps:", error);
-        // Return stale cache if available
-        if (appsCache) {
-            console.log("Returning stale cache due to error");
-            return appsCache;
-        }
-        throw new Error("Failed to fetch apps");
+        throw new Error("Failed to fetch apps from database");
     }
-}
-
-/**
- * Clear the memory cache
- */
-export function clearAppsCache(): void {
-    appsCache = null;
-    lastFetchTime = 0;
 }
 
 /**
@@ -112,7 +73,7 @@ export async function getAppById(appId: string): Promise<AppDocument | null> {
         return null;
     } catch (error) {
         console.error("Error fetching app:", error);
-        throw new Error("Failed to fetch app");
+        throw new Error("Failed to fetch app from database");
     }
 }
 
@@ -135,15 +96,12 @@ export async function addApp(
         };
 
         const docRef = await addDoc(collection(db, APPS_COLLECTION), newApp);
-        console.log("App added with ID:", docRef.id);
-        
-        // Clear cache to force refresh
-        clearAppsCache();
+        console.log("App added to database with ID:", docRef.id);
         
         return docRef.id;
     } catch (error) {
         console.error("Error adding app:", error);
-        throw new Error("Failed to add app");
+        throw new Error("Failed to add app to database");
     }
 }
 
@@ -160,13 +118,10 @@ export async function updateApp(
             ...appData,
             updatedAt: Timestamp.now(),
         });
-        console.log("App updated:", appId);
-        
-        // Clear cache
-        clearAppsCache();
+        console.log("App updated in database:", appId);
     } catch (error) {
         console.error("Error updating app:", error);
-        throw new Error("Failed to update app");
+        throw new Error("Failed to update app in database");
     }
 }
 
@@ -177,13 +132,10 @@ export async function deleteApp(appId: string): Promise<void> {
     try {
         const docRef = doc(db, APPS_COLLECTION, appId);
         await deleteDoc(docRef);
-        console.log("App deleted:", appId);
-        
-        // Clear cache
-        clearAppsCache();
+        console.log("App deleted from database:", appId);
     } catch (error) {
         console.error("Error deleting app:", error);
-        throw new Error("Failed to delete app");
+        throw new Error("Failed to delete app from database");
     }
 }
 
@@ -227,10 +179,7 @@ export async function reorderApp(
         });
 
         await batch.commit();
-        console.log("Apps reordered successfully");
-        
-        // Clear cache
-        clearAppsCache();
+        console.log("Apps reordered successfully in database");
     } catch (error) {
         console.error("Error reordering app:", error);
         throw new Error("Failed to reorder app");
@@ -250,8 +199,7 @@ export async function normalizeAppOrders(): Promise<void> {
         });
 
         await batch.commit();
-        console.log("App orders normalized");
-        clearAppsCache();
+        console.log("App orders normalized in database");
     } catch (error) {
         console.error("Error normalizing orders:", error);
     }
