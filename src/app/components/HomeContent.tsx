@@ -70,7 +70,7 @@ export default function HomeContent() {
     const normalizeCategory = (zone: AppData["zone"]): ContentCategory | "all" => {
         if (zone === "teacher") return "ebook";
         if (zone === "student") return "quiz";
-        if (zone === "both") return "all";
+        if (zone === "both") return "app";
         return zone;
     };
 
@@ -80,10 +80,10 @@ export default function HomeContent() {
         quiz: { label: "Quiz", icon: "?" },
     } satisfies Record<ContentCategory, { label: string; icon: string }>;
 
-    // Filter apps based on current category. Legacy "both" content is shown everywhere.
+    // Filter apps based on current category. Legacy "both" content now belongs to App.
     const filteredApps = apps.filter((app) => {
         const category = normalizeCategory(app.zone);
-        return category === currentZone || category === "all";
+        return category === currentZone;
     });
     const currentCategory = categoryMeta[currentZone];
 
