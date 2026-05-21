@@ -1,105 +1,119 @@
-# ⚛️ PHYSICS COOLNUT
-## แพลตฟอร์มการเรียนรู้วิชาฟิสิกส์
-### (Physics Learning Platform)
+# PHYSICS COOLNUT
 
----
+> A modern physics learning hub for apps, ebooks, and quizzes.
 
-## 📌 1. บทสรุปผู้บริหาร (Executive Summary)
-**PHYSICS COOLNUT** เป็นระบบเว็บแอปพลิเคชันสำหรับการเรียนรู้วิชาฟิสิกส์
-สำหรับนักเรียนที่ต้องการเข้าถึงบทเรียนและแหล่งเรียนรู้ต่างๆ ได้ง่าย ๆ ในที่เดียว
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%2B%20Storage-FFCA28?logo=firebase)](https://firebase.google.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38BDF8?logo=tailwindcss)](https://tailwindcss.com/)
 
-ระบบได้รับการออกแบบตามแนวคิด **Modern Web Application** ที่เน้นความเรียบง่าย
-สวยงาม และใช้งานง่าย รองรับการใช้งานบนทุกอุปกรณ์
+PHYSICS COOLNUT is a lightweight learning portal built for organizing and publishing physics-related resources in one clean interface. The public homepage groups content into three categories: `App`, `Ebook`, and `Quiz`. Admin users can manage cards, upload icons, reorder content, and enable or disable items from a protected dashboard.
 
----
+## Current Product Shape
 
-## 🎯 2. วัตถุประสงค์ของโครงการ
-1. เพื่อจัดตั้งแพลตฟอร์มการเรียนรู้ฟิสิกส์ออนไลน์
-2. เพื่อให้นักเรียนเข้าถึงบทเรียนและแหล่งเรียนรู้ได้สะดวก
-3. เพื่อให้ผู้ดูแลระบบสามารถจัดการเนื้อหาได้ง่าย
-4. เพื่อสนับสนุนการศึกษาด้านวิทยาศาสตร์และฟิสิกส์
+| Area | Status | Notes |
+| --- | --- | --- |
+| Public homepage | Ready | Displays enabled cards by category. Default tab is `Quiz`. |
+| Content categories | Ready | Supports `App`, `Ebook`, and `Quiz`. |
+| Admin dashboard | Ready | Add, edit, delete, reorder, and toggle content cards. |
+| Image upload | Ready | Uploads card icons to Firebase Storage. |
+| Auth guard | Ready | Admin area is protected with a secret-key session cookie. |
+| Persistence | Ready | Firestore stores all card metadata and ordering. |
 
----
+## Features
 
-## 👥 3. กลุ่มผู้ใช้งานเป้าหมาย
-- 👨‍🎓 นักเรียนที่เรียนวิชาฟิสิกส์
-- 👨‍🏫 ครูผู้สอนวิชาฟิสิกส์
-- 🔐 ผู้ดูแลระบบ (Admin) - มีรหัสผ่านพิเศษ
+- Category switcher for `App`, `Ebook`, and `Quiz`
+- Liquid-glass inspired card UI and responsive layout
+- Firestore-backed content management
+- Firebase Storage image upload with progress state
+- Admin login via `ADMIN_SECRET_KEY`
+- HTTP-only cookie session for admin access
+- Protected `/admin` route through Next.js proxy middleware
+- Card ordering, status toggle, and fallback gradient icons
+- Backward compatibility for old category values:
+  `student -> quiz`, `teacher -> ebook`, `both -> app`
 
----
+## Tech Stack
 
-## 🧩 4. ขอบเขตและความสามารถของระบบ
-- 📚 ระบบแสดงบทเรียนฟิสิกส์ (Physics Lessons)
-- 🔬 ระบบแสดงแหล่งเรียนรู้เสริม (Learning Resources)
-- 🔐 ระบบควบคุมสิทธิ์และการยืนยันตัวตนสำหรับ Admin
-- 🖼️ ระบบจัดการรูปภาพและ URL เนื้อหา
-- 📱 รองรับการใช้งานบนอุปกรณ์ทุกประเภท
+| Layer | Technology |
+| --- | --- |
+| Framework | Next.js 16 App Router |
+| UI | React 19, TypeScript |
+| Styling | Tailwind CSS 4, custom global CSS |
+| Icons | lucide-react |
+| Database | Firebase Firestore |
+| File storage | Firebase Storage |
+| Auth | Next.js API routes, HTTP-only cookies |
+| Deployment-ready config | Vercel config included |
 
----
+## Project Structure
 
-## 🧠 5. สถาปัตยกรรมและเทคโนโลยีที่ใช้
-
-### 🖥️ 5.1 Frontend Architecture
-
-| เทคโนโลยี | รายละเอียด |
-|-----------|------------|
-| ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js) | React Framework with App Router |
-| ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react) | UI Component Library |
-| ![TypeScript](https://img.shields.io/badge/TypeScript-5-007ACC?logo=typescript) | Type-safe Development |
-| ![Tailwind](https://img.shields.io/badge/TailwindCSS-4-38B2AC?logo=tailwind-css) | Utility-first CSS |
-
-### ⚙️ 5.2 Backend & Application Logic
-
-| เทคโนโลยี | รายละเอียด |
-|-----------|------------|
-| ![API](https://img.shields.io/badge/Next.js-API%20Routes-black) | Serverless Backend |
-| ![REST](https://img.shields.io/badge/RESTful-API-blue) | Standard API Design |
-
-### ☁️ 5.3 Database & Cloud Services
-
-| เทคโนโลยี | รายละเอียด |
-|-----------|------------|
-| ![Firestore](https://img.shields.io/badge/Firebase-Firestore-FFA611?logo=firebase) | NoSQL Database |
-| ![Storage](https://img.shields.io/badge/Firebase-Storage-039BE5?logo=firebase) | Image/File Storage |
-
-### 🔐 5.4 Security & Authentication
-
-- 🔑 การยืนยันตัวตนผ่าน Secret Key (สำหรับ Admin)
-- 🍪 การจัดการ Session ด้วย HTTP-only Cookies
-- 🌐 การกำหนดค่า Environment Variables
-
----
-
-## 🗂️ 6. โครงสร้างระบบ (Project Structure)
-
-```bash
-src/
-├── app/
-│   ├── admin/           # ระบบบริหารจัดการ
-│   ├── api/             # Backend API
-│   ├── components/      # React Components
-│   ├── layout.tsx       # โครงสร้างหลัก
-│   └── page.tsx         # หน้าแรก
-├── lib/
-│   ├── firebase.ts      # Firebase Config
-│   ├── firestore.ts     # Database Operations
-│   └── storage.ts       # File Storage
-└── public/              # Static Assets
+```txt
+.
+|-- public/
+|   |-- logo.png
+|-- src/
+|   |-- app/
+|   |   |-- admin/dashboard/page.tsx
+|   |   |-- api/auth/check/route.ts
+|   |   |-- api/auth/login/route.ts
+|   |   |-- api/auth/logout/route.ts
+|   |   |-- components/
+|   |   |   |-- AdminLoginModal.tsx
+|   |   |   |-- AppCard.tsx
+|   |   |   |-- AppFormModal.tsx
+|   |   |   |-- AppGrid.tsx
+|   |   |   |-- HomeContent.tsx
+|   |   |   |-- ZoneSwitcher.tsx
+|   |   |-- globals.css
+|   |   |-- layout.tsx
+|   |   |-- page.tsx
+|   |-- lib/
+|   |   |-- firebase.ts
+|   |   |-- firestore.ts
+|   |   |-- storage.ts
+|   |-- proxy.ts
+|-- AGENTS.md
+|-- Architech.md
+|-- README.md
 ```
 
----
+## Data Model
 
-## 🚀 7. การติดตั้งและใช้งาน
+Firestore collection: `apps`
 
-### 7.1 ติดตั้ง Dependencies
-```bash
-npm install
+```ts
+interface AppDocument {
+  id?: string;
+  name: string;
+  url: string;
+  iconUrl: string;
+  zone: "app" | "ebook" | "quiz" | "student" | "teacher" | "both";
+  color?: string;
+  order: number;
+  isEnabled?: boolean;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
 ```
 
-### 7.2 ตั้งค่า Environment Variables
-สร้างไฟล์ `.env.local`:
+Category behavior:
+
+| Stored value | Public category |
+| --- | --- |
+| `app` | App |
+| `ebook` | Ebook |
+| `quiz` | Quiz |
+| `student` | Quiz legacy compatibility |
+| `teacher` | Ebook legacy compatibility |
+| `both` | App legacy compatibility |
+
+## Environment Variables
+
+Create `.env.local` in the project root:
+
 ```env
-# Firebase Configuration
 NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
@@ -107,43 +121,74 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
-# Admin Secret Key
-ADMIN_SECRET_KEY=your_secret_password
+ADMIN_SECRET_KEY=your_admin_secret
 ```
 
-### 7.3 รัน Development Server
+## Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the local dev server:
+
 ```bash
 npm run dev
 ```
 
-### 7.4 Build for Production
+Lint the project:
+
+```bash
+npm run lint
+```
+
+Build for production:
+
 ```bash
 npm run build
 ```
 
----
+Start the production build:
 
-## 📈 8. สถานะและความพร้อมของโครงการ
-✅ ระบบหลัก: พร้อมใช้งาน
-✅ ระบบผู้ดูแล: พร้อมใช้งาน
-✅ ระบบคลาวด์และฐานข้อมูล: พร้อมใช้งาน
-🔄 การขยายฟีเจอร์: อยู่ระหว่างพัฒนา
+```bash
+npm run start
+```
 
----
+## Admin Workflow
 
-## 👤 9. ข้อมูลผู้พัฒนา
-**COOLNUT Academy**  
-แพลตฟอร์มการศึกษาด้านวิทยาศาสตร์และเทคโนโลยี
+1. Open the public homepage.
+2. Click the hidden admin lock in the footer badge.
+3. Enter the admin secret key.
+4. Manage cards from `/admin/dashboard`.
+5. Add or edit a card with name, URL, category, icon, and fallback color.
+6. Use reorder controls to change display order.
+7. Use the status toggle to temporarily hide or show cards.
 
----
+## Important Implementation Notes
 
-## 🏁 10. บทสรุป
-โครงการ PHYSICS COOLNUT เป็นแพลตฟอร์มการเรียนรู้ฟิสิกส์ที่มีความทันสมัย
-ใช้งานง่าย และสามารถขยายระบบในอนาคตได้ รองรับการใช้งานในโรงเรียนและสถาบันการศึกษา
+- The public homepage defaults to the `Quiz` category.
+- The admin form writes new cards using `app`, `ebook`, or `quiz`.
+- Older Firestore records are still supported so existing data does not need an immediate migration.
+- `getApps()` intentionally fetches directly from Firestore without a custom cache.
+- Image uploads are limited in the form UI to image files up to 2 MB.
+- Admin sessions last 24 hours and are stored in an HTTP-only cookie named `admin_session`.
 
----
+## Documentation
 
-## 🔗 Links & Resources
-- 🌐 **Live Demo**: [Your Deployment URL]
-- 📧 **Contact**: [Your Contact Email]
-- ⚛️ **Physics Topics**: Mechanics, Thermodynamics, Electromagnetism, Optics, Modern Physics
+- [AGENTS.md](./AGENTS.md): contributor and coding-agent operating guide
+- [Architech.md](./Architech.md): system architecture, data flow, and module responsibilities
+
+## Deployment Checklist
+
+- Firebase project is configured.
+- Firestore collection `apps` exists or can be created by the app.
+- Firebase Storage rules allow intended authenticated or public upload/read behavior.
+- `.env.local` values are configured in the deployment platform.
+- `ADMIN_SECRET_KEY` is strong and not committed to Git.
+- Run `npm run lint` and `npm run build` before deployment.
+
+## Maintainer Notes
+
+PHYSICS COOLNUT is designed as a simple, fast, teacher-friendly content launcher rather than a full LMS. Keep future changes focused on low-friction publishing, reliable content access, and a polished experience for students.
