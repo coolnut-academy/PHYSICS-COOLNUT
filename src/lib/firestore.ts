@@ -26,7 +26,7 @@ export interface AppDocument {
     name: string;
     url: string;
     iconUrl: string;
-    zone: "student" | "teacher" | "both";
+    zone: "app" | "ebook" | "quiz" | "student" | "teacher" | "both";
     color?: string;
     order: number;
     isEnabled?: boolean;

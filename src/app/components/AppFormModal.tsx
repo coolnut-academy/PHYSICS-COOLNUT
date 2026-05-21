@@ -9,19 +9,19 @@ import {
     Upload,
     Link as LinkIcon,
     Type,
-    Users,
-    Atom,
+    Tag,
+    AppWindow,
     BookOpen,
-    Globe,
+    CircleHelp,
     ImageIcon,
     Sparkles,
 } from "lucide-react";
 import { uploadImage } from "@/lib/storage";
 import { AppDocument } from "@/lib/firestore";
 import { UploadProgress } from "@/lib/storage";
-import AppCard, { AppData } from "./AppCard";
+import AppCard from "./AppCard";
 
-type Zone = "student" | "teacher" | "both";
+type Zone = "app" | "ebook" | "quiz" | "student" | "teacher" | "both";
 
 interface AppFormModalProps {
     isOpen: boolean;
@@ -43,6 +43,13 @@ const GRADIENT_OPTIONS = [
     { value: "transparent", label: "Transparent", preview: "bg-white border-2 border-dashed border-slate-300" },
 ];
 
+function normalizeCategory(value: Zone): "app" | "ebook" | "quiz" {
+    if (value === "teacher") return "ebook";
+    if (value === "student") return "quiz";
+    if (value === "both") return "app";
+    return value;
+}
+
 export default function AppFormModal({
     isOpen,
     onClose,
@@ -51,7 +58,7 @@ export default function AppFormModal({
 }: AppFormModalProps) {
     const [name, setName] = useState("");
     const [url, setUrl] = useState("");
-    const [zone, setZone] = useState<Zone>("both");
+    const [zone, setZone] = useState<Zone>("app");
     const [iconUrl, setIconUrl] = useState("");
     const [color, setColor] = useState(GRADIENT_OPTIONS[0].value);
     const [isUploading, setIsUploading] = useState(false);
@@ -66,14 +73,14 @@ export default function AppFormModal({
         if (editingApp) {
             setName(editingApp.name);
             setUrl(editingApp.url);
-            setZone(editingApp.zone);
+            setZone(normalizeCategory(editingApp.zone));
             setIconUrl(editingApp.iconUrl);
             setColor(editingApp.color || GRADIENT_OPTIONS[0].value);
         } else {
             // Reset form for new content
             setName("");
             setUrl("");
-            setZone("both");
+            setZone("app");
             setIconUrl("");
             setColor(GRADIENT_OPTIONS[0].value);
         }
@@ -294,51 +301,48 @@ export default function AppFormModal({
                                 />
                             </div>
 
-                            {/* Zone Selection */}
+                            {/* Category Selection */}
                             <div>
                                 <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-3">
-                                    <Users className="w-4 h-4 opacity-60" />
-                                    แสดงสำหรับ
+                                    <Tag className="w-4 h-4 opacity-60" />
+                                    หมวดหมู่
                                 </label>
                                 <div className="grid grid-cols-3 gap-3">
-                                    {/* Student - Lessons */}
                                     <button
                                         type="button"
-                                        onClick={() => setZone("student")}
+                                        onClick={() => setZone("app")}
                                         disabled={isSubmitting}
-                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "student"
+                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "app"
                                             ? "border-blue-500 bg-blue-50 text-blue-700"
                                             : "border-slate-200 hover:border-slate-300 text-slate-600"
                                             }`}
                                     >
-                                        <Atom className="w-5 h-5" />
-                                        <span className="text-xs font-medium">บทเรียน</span>
+                                        <AppWindow className="w-5 h-5" />
+                                        <span className="text-xs font-medium">App</span>
                                     </button>
-                                    {/* Teacher - Resources */}
                                     <button
                                         type="button"
-                                        onClick={() => setZone("teacher")}
+                                        onClick={() => setZone("ebook")}
                                         disabled={isSubmitting}
-                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "teacher"
-                                            ? "border-purple-500 bg-purple-50 text-purple-700"
+                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "ebook"
+                                            ? "border-amber-500 bg-amber-50 text-amber-700"
                                             : "border-slate-200 hover:border-slate-300 text-slate-600"
                                             }`}
                                     >
                                         <BookOpen className="w-5 h-5" />
-                                        <span className="text-xs font-medium">เอกสารประกอบ</span>
+                                        <span className="text-xs font-medium">Ebook</span>
                                     </button>
-                                    {/* Both */}
                                     <button
                                         type="button"
-                                        onClick={() => setZone("both")}
+                                        onClick={() => setZone("quiz")}
                                         disabled={isSubmitting}
-                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "both"
-                                            ? "border-green-500 bg-green-50 text-green-700"
+                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "quiz"
+                                            ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                                             : "border-slate-200 hover:border-slate-300 text-slate-600"
                                             }`}
                                     >
-                                        <Globe className="w-5 h-5" />
-                                        <span className="text-xs font-medium">ทั้งหมด</span>
+                                        <CircleHelp className="w-5 h-5" />
+                                        <span className="text-xs font-medium">Quiz</span>
                                     </button>
                                 </div>
                             </div>

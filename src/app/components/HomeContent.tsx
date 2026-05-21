@@ -4,13 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Sparkles, Lock, Loader2, RefreshCw } from "lucide-react";
-import ZoneSwitcher from "./ZoneSwitcher";
+import ZoneSwitcher, { ContentCategory } from "./ZoneSwitcher";
 import AppGrid from "./AppGrid";
 import { AppData } from "./AppCard";
 import AdminLoginModal from "./AdminLoginModal";
 import { getApps, AppDocument } from "@/lib/firestore";
-
-type Zone = "student" | "teacher";
 
 // Convert Firestore AppDocument to AppData format
 function toAppData(doc: AppDocument): AppData {
@@ -26,7 +24,7 @@ function toAppData(doc: AppDocument): AppData {
 }
 
 export default function HomeContent() {
-    const [currentZone, setCurrentZone] = useState<Zone>("student");
+    const [currentZone, setCurrentZone] = useState<ContentCategory>("quiz");
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [apps, setApps] = useState<AppData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -69,10 +67,25 @@ export default function HomeContent() {
         router.push("/admin/dashboard");
     };
 
-    // Filter apps based on current zone
-    const filteredApps = apps.filter(
-        (app) => app.zone === currentZone || app.zone === "both"
-    );
+    const normalizeCategory = (zone: AppData["zone"]): ContentCategory | "all" => {
+        if (zone === "teacher") return "ebook";
+        if (zone === "student") return "quiz";
+        if (zone === "both") return "all";
+        return zone;
+    };
+
+    const categoryMeta = {
+        app: { label: "App", icon: "A" },
+        ebook: { label: "Ebook", icon: "E" },
+        quiz: { label: "Quiz", icon: "?" },
+    } satisfies Record<ContentCategory, { label: string; icon: string }>;
+
+    // Filter apps based on current category. Legacy "both" content is shown everywhere.
+    const filteredApps = apps.filter((app) => {
+        const category = normalizeCategory(app.zone);
+        return category === currentZone || category === "all";
+    });
+    const currentCategory = categoryMeta[currentZone];
 
     return (
         <main className="min-h-screen flex flex-col pb-8">
@@ -168,10 +181,10 @@ export default function HomeContent() {
                 <div className="mb-6 sm:mb-8">
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/30 backdrop-blur-lg border border-white/40 shadow-sm">
                         <span className="text-lg">
-                            {currentZone === "student" ? "⚛️" : "📄"}
+                            {currentCategory.icon}
                         </span>
                         <h2 className="text-base sm:text-lg font-semibold text-slate-700">
-                            {currentZone === "student" ? "บทเรียน" : "ตำรา"}
+                            {currentCategory.label}
                         </h2>
                     </div>
                 </div>
@@ -211,8 +224,7 @@ export default function HomeContent() {
                         /* Apps Grid */
                         <AppGrid
                             apps={filteredApps}
-                            emptyMessage={`ไม่พบเนื้อหาสำหรับ${currentZone === "student" ? "บทเรียน" : "ตำรา"}
-                                }`}
+                            emptyMessage={`ไม่พบเนื้อหาสำหรับ ${currentCategory.label}`}
                         />
                     )}
                 </div>

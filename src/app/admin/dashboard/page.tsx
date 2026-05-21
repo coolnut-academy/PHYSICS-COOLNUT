@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
-    LayoutDashboard,
     LogOut,
     Plus,
     Loader2,
@@ -14,9 +13,8 @@ import {
     ChevronUp,
     ChevronDown,
     AppWindow,
-    GraduationCap,
-    Briefcase,
-    Globe,
+    BookOpen,
+    CircleHelp,
     AlertTriangle,
     RefreshCw,
     ToggleLeft,
@@ -93,30 +91,36 @@ function ConfirmModal({
     );
 }
 
-// Zone Badge Component
-function ZoneBadge({ zone }: { zone: "student" | "teacher" | "both" }) {
+// Category Badge Component
+function ZoneBadge({ zone }: { zone: AppDocument["zone"] }) {
+    const normalizedZone =
+        zone === "teacher" ? "ebook" :
+            zone === "student" ? "quiz" :
+                zone === "both" ? "app" :
+                    zone;
+
     const config = {
-        student: {
-            icon: GraduationCap,
-            label: "นักเรียน",
+        app: {
+            icon: AppWindow,
+            label: "App",
             bg: "bg-blue-100",
             text: "text-blue-700",
         },
-        teacher: {
-            icon: Briefcase,
-            label: "ครู",
-            bg: "bg-purple-100",
-            text: "text-purple-700",
+        ebook: {
+            icon: BookOpen,
+            label: "Ebook",
+            bg: "bg-amber-100",
+            text: "text-amber-700",
         },
-        both: {
-            icon: Globe,
-            label: "ทั้งหมด",
-            bg: "bg-green-100",
-            text: "text-green-700",
+        quiz: {
+            icon: CircleHelp,
+            label: "Quiz",
+            bg: "bg-emerald-100",
+            text: "text-emerald-700",
         },
     };
 
-    const { icon: Icon, label, bg, text } = config[zone];
+    const { icon: Icon, label, bg, text } = config[normalizedZone];
 
     return (
         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>
@@ -529,15 +533,19 @@ export default function AdminDashboard() {
                     <div className="mt-6 flex flex-wrap gap-4 text-sm text-slate-500">
                         <div className="flex items-center gap-2">
                             <AppWindow className="w-4 h-4" />
-                            <span>รวมทั้งหมด: <strong className="text-slate-700">{apps.length}</strong> แอป</span>
+                            <span>รวมทั้งหมด: <strong className="text-slate-700">{apps.length}</strong> รายการ</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <GraduationCap className="w-4 h-4 text-blue-500" />
-                            <span>บทเรียน: <strong className="text-slate-700">{apps.filter(a => a.zone === "student" || a.zone === "both").length}</strong></span>
+                            <AppWindow className="w-4 h-4 text-blue-500" />
+                            <span>App: <strong className="text-slate-700">{apps.filter(a => a.zone === "app" || a.zone === "both").length}</strong></span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Briefcase className="w-4 h-4 text-purple-500" />
-                            <span>เอกสารประกอบ: <strong className="text-slate-700">{apps.filter(a => a.zone === "teacher" || a.zone === "both").length}</strong></span>
+                            <BookOpen className="w-4 h-4 text-amber-500" />
+                            <span>Ebook: <strong className="text-slate-700">{apps.filter(a => a.zone === "ebook" || a.zone === "teacher" || a.zone === "both").length}</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <CircleHelp className="w-4 h-4 text-emerald-500" />
+                            <span>Quiz: <strong className="text-slate-700">{apps.filter(a => a.zone === "quiz" || a.zone === "student" || a.zone === "both").length}</strong></span>
                         </div>
                     </div>
                 )}

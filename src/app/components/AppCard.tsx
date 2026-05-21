@@ -8,7 +8,7 @@ export interface AppData {
     name: string;
     url: string;
     iconUrl: string;
-    zone: "student" | "teacher" | "both";
+    zone: "app" | "ebook" | "quiz" | "student" | "teacher" | "both";
     color?: string;
     isEnabled?: boolean;
 }
