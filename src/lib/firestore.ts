@@ -335,13 +335,8 @@ export async function getContentPages(): Promise<ContentPageDocument[]> {
 
 export async function getEnabledContentPages(): Promise<ContentPageDocument[]> {
     try {
-        const pagesRef = collection(db, PAGES_COLLECTION);
-        const q = query(pagesRef, where("isEnabled", "==", true), orderBy("order", "asc"));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-        })) as ContentPageDocument[];
+        const pages = await getContentPages();
+        return pages.filter((page) => page.isEnabled !== false);
     } catch (error) {
         console.error("Error fetching enabled content pages:", error);
         throw new Error("Failed to fetch enabled content pages");
@@ -491,9 +486,9 @@ export async function countAppsForPage(pageId: string): Promise<number> {
 export async function countAppsForTab(pageId: string, tabId: string): Promise<number> {
     try {
         const appsRef = collection(db, APPS_COLLECTION);
-        const q = query(appsRef, where("pageId", "==", pageId), where("tabId", "==", tabId));
+        const q = query(appsRef, where("pageId", "==", pageId));
         const snapshot = await getDocs(q);
-        return snapshot.size;
+        return snapshot.docs.filter((doc) => doc.data().tabId === tabId).length;
     } catch (error) {
         console.error("Error counting apps for tab:", error);
         return 0;
@@ -504,12 +499,12 @@ export async function countAppsForTab(pageId: string, tabId: string): Promise<nu
 export async function getAppsForPage(pageId: string): Promise<AppDocument[]> {
     try {
         const appsRef = collection(db, APPS_COLLECTION);
-        const q = query(appsRef, where("pageId", "==", pageId), orderBy("order", "asc"));
+        const q = query(appsRef, where("pageId", "==", pageId));
         const snapshot = await getDocs(q);
         return snapshot.docs.map((d) => ({
             id: d.id,
             ...d.data(),
-        })) as AppDocument[];
+        } as AppDocument)).sort((a, b) => (a.order || 0) - (b.order || 0));
     } catch (error) {
         console.error("Error fetching apps for page:", error);
         throw new Error("Failed to fetch apps for page");
@@ -520,12 +515,15 @@ export async function getAppsForPage(pageId: string): Promise<AppDocument[]> {
 export async function getAppsForTab(pageId: string, tabId: string): Promise<AppDocument[]> {
     try {
         const appsRef = collection(db, APPS_COLLECTION);
-        const q = query(appsRef, where("pageId", "==", pageId), where("tabId", "==", tabId), orderBy("order", "asc"));
+        const q = query(appsRef, where("pageId", "==", pageId));
         const snapshot = await getDocs(q);
-        return snapshot.docs.map((d) => ({
-            id: d.id,
-            ...d.data(),
-        })) as AppDocument[];
+        return snapshot.docs
+            .map((d) => ({
+                id: d.id,
+                ...d.data(),
+            } as AppDocument))
+            .filter((app) => app.tabId === tabId)
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
     } catch (error) {
         console.error("Error fetching apps for tab:", error);
         throw new Error("Failed to fetch apps for tab");
