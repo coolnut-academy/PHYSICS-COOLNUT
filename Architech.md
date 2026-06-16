@@ -42,11 +42,15 @@ Next.js App Router
 |   |-- ZoneSwitcher
 |   |-- AppGrid
 |   |-- AppCard
+|   |-- ContentPageLauncherGrid (dynamic content page launchers)
+|   |-- ContentPageView (dynamic custom page view)
 |
 |-- Admin UI
 |   |-- AdminDashboard
 |   |-- AppFormModal
 |   |-- AdminLoginModal
+|   |-- ContentPageManager (custom pages manager)
+|   |-- ContentPageFormModal (custom page add/edit form)
 |
 |-- API Routes
 |   |-- /api/auth/login
@@ -57,9 +61,9 @@ Next.js App Router
 |   |-- protects /admin/*
 |
 |-- Firebase Client Layer
-    |-- firestore.ts
-    |-- storage.ts
-    |-- firebase.ts
+|     |-- firestore.ts (CRUD + customPages helpers)
+|     |-- storage.ts
+|     |-- firebase.ts
 ```
 
 ## 3. Runtime Flow
@@ -143,6 +147,36 @@ interface AppDocument {
   color?: string;
   order: number;
   isEnabled?: boolean;
+  pageId?: string; // Optional custom page ID
+  tabId?: string;  // Optional custom tab ID
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+```
+
+Firestore collection:
+
+```txt
+contentPages
+```
+
+Document shape:
+
+```ts
+interface ContentPageTab {
+  id: string;
+  title: string;
+  order: number;
+  isEnabled: boolean;
+}
+
+interface ContentPageDocument {
+  id?: string;
+  title: string;
+  slug: string;
+  tabs: ContentPageTab[];
+  order: number;
+  isEnabled: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -159,6 +193,8 @@ Field notes:
 | `color` | Tailwind gradient class for fallback icon. |
 | `order` | Ascending display order. |
 | `isEnabled` | `false` hides/disables behavior. Missing value is treated as enabled. |
+| `pageId` | Custom page identifier. Keeps card grouped under dynamic subpage. |
+| `tabId` | Tab identifier within custom page. |
 | `createdAt` | Creation timestamp. |
 | `updatedAt` | Last update timestamp. |
 
@@ -189,19 +225,41 @@ Field notes:
 - Handles create/edit form state.
 - Normalizes legacy categories when editing old records.
 - Uploads images.
+- Supports selecting standard category or custom page tab placement.
 - Submits card data to the admin dashboard callback.
+
+### `src/app/components/ContentPageFormModal.tsx`
+
+- Handles custom page creation and editing form state.
+- Automatically generates slug from title, with manual override support.
+- Provides subtab creation, renaming, reordering, and deletion with safety counts.
+
+### `src/app/components/ContentPageManager.tsx`
+
+- Renders lists of custom pages inside the admin dashboard.
+- Controls page visibility (isEnabled) and page-level order sorting.
+- Safely blocks deletion of pages containing linked content cards.
+
+### `src/app/components/ContentPageLauncherGrid.tsx`
+
+- Renders launcher cards for each enabled custom page on the public homepage.
+
+### `src/app/components/ContentPageView.tsx`
+
+- Renders custom pages with horizontal tab selectors and independent card grids.
 
 ### `src/app/admin/dashboard/page.tsx`
 
 - Checks auth status.
-- Loads all cards.
-- Provides CRUD operations.
-- Renders category badges and dashboard stats.
+- Loads cards and custom page lists.
+- Dynamically switches views between "Cards" and "Pages" panels.
+- Provides CRUD triggers, stats, and search filters.
 
 ### `src/lib/firestore.ts`
 
 - Central Firestore CRUD layer.
-- Keeps ordering operations in one place.
+- Manages app and custom page collections.
+- Performs scope-aware reordering and batch normalizations.
 - Adds and updates timestamps.
 
 ### `src/lib/storage.ts`

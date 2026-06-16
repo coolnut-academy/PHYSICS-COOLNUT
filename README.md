@@ -64,8 +64,15 @@ PHYSICS COOLNUT is a lightweight learning portal built for organizing and publis
 |   |   |   |-- AppCard.tsx
 |   |   |   |-- AppFormModal.tsx
 |   |   |   |-- AppGrid.tsx
+|   |   |   |-- ContentPageFormModal.tsx
+|   |   |   |-- ContentPageLauncherGrid.tsx
+|   |   |   |-- ContentPageManager.tsx
+|   |   |   |-- ContentPageView.tsx
 |   |   |   |-- HomeContent.tsx
 |   |   |   |-- ZoneSwitcher.tsx
+|   |   |-- hub/
+|   |   |   |-- [slug]/
+|   |   |   |   |-- page.tsx
 |   |   |-- globals.css
 |   |   |-- layout.tsx
 |   |   |-- page.tsx
@@ -93,21 +100,59 @@ interface AppDocument {
   color?: string;
   order: number;
   isEnabled?: boolean;
+  pageId?: string; // Optional custom page ID
+  tabId?: string;  // Optional custom tab ID
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
 ```
 
-Category behavior:
+Firestore collection: `contentPages`
 
-| Stored value | Public category |
-| --- | --- |
-| `app` | App |
-| `ebook` | Ebook |
-| `quiz` | Quiz |
-| `student` | Quiz legacy compatibility |
-| `teacher` | Ebook legacy compatibility |
-| `both` | App legacy compatibility |
+```ts
+interface ContentPageTab {
+  id: string;
+  title: string;
+  order: number;
+  isEnabled: boolean;
+}
+
+interface ContentPageDocument {
+  id?: string;
+  title: string;
+  slug: string;
+  tabs: ContentPageTab[];
+  order: number;
+  isEnabled: boolean;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+```
+
+Category and Placement behavior:
+
+| Placement | Field configuration | Render scope |
+| --- | --- | --- |
+| Root Category | `pageId` absent | Rendered on homepage tabs based on normalized `zone`. |
+| Custom Page | `pageId` & `tabId` present | Rendered only inside `/hub/[slug]` route matching selected tab. |
+| Legacy zones | `student`/`teacher`/`both` | Normalized to `quiz`/`ebook`/`app` on read. |
+
+## Dynamic Pages Routing
+
+All enabled custom pages are dynamically resolved and rendered under:
+
+```txt
+/hub/[slug]
+```
+
+Where `slug` is the unique URL suffix defined by the admin (e.g. `/hub/projects`). Helper functions automatically block requests to disabled or deleted pages.
+
+## Delete Safety Rules
+
+To avoid content loss:
+1. Deleting a custom page is blocked if any card references its `pageId`.
+2. Deleting a custom tab is blocked if any card references its `pageId` and `tabId`.
+3. The administrator is prompted with a clear Thai error message listing requirements before deletion can proceed.
 
 ## Environment Variables
 

@@ -55,7 +55,12 @@ For small documentation-only changes, `npm run lint` is optional unless code was
 | `src/app/components/ZoneSwitcher.tsx` | Category tab switcher |
 | `src/app/components/AppGrid.tsx` | Card grid and empty state |
 | `src/app/components/AppCard.tsx` | Public content card |
-| `src/app/components/AppFormModal.tsx` | Admin add/edit form and icon upload |
+| `src/app/components/AppFormModal.tsx` | Admin add/edit card form and icon upload |
+| `src/app/components/ContentPageFormModal.tsx` | Admin add/edit form for custom pages |
+| `src/app/components/ContentPageManager.tsx` | Admin dashboard panel for custom pages |
+| `src/app/components/ContentPageLauncherGrid.tsx` | Homepage launchers for enabled custom pages |
+| `src/app/components/ContentPageView.tsx` | Public custom page with its own tab switcher |
+| `src/app/hub/[slug]/page.tsx` | Public route for custom page launcher |
 | `src/app/admin/dashboard/page.tsx` | Admin dashboard CRUD UI |
 | `src/app/api/auth/*/route.ts` | Login, logout, and session check APIs |
 | `src/lib/firebase.ts` | Firebase client initialization |
@@ -95,6 +100,30 @@ interface AppDocument {
   color?: string;
   order: number;
   isEnabled?: boolean;
+  pageId?: string; // Optional custom page ID
+  tabId?: string;  // Optional custom tab ID
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+```
+
+Firestore collection: `contentPages`
+
+```ts
+interface ContentPageTab {
+  id: string;      // Stable tab ID
+  title: string;   // Tab title
+  order: number;   // Display order (0-indexed)
+  isEnabled: boolean;
+}
+
+interface ContentPageDocument {
+  id?: string;
+  title: string;   // Page title
+  slug: string;    // Unique URL slug
+  tabs: ContentPageTab[];
+  order: number;   // Display order on homepage launchers
+  isEnabled: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -102,9 +131,10 @@ interface AppDocument {
 
 Notes:
 
-- New writes should use only `app`, `ebook`, or `quiz`.
-- Preserve old values in type unions until data migration is intentionally performed.
-- Do not rename `zone` casually; it is the persisted Firestore field.
+- New writes on `AppDocument` should use only `app`, `ebook`, or `quiz`.
+- Cards placed inside custom pages contain both `pageId` and `tabId`. They are excluded from root lists and shown under `/hub/[slug]` route.
+- If a card is moved back to root categories, `pageId` and `tabId` are deleted from the Firestore document using `deleteField()`.
+- Deletion of pages and tabs containing cards is blocked to prevent accidental content loss.
 - `isEnabled !== false` means visible/enabled by default.
 
 ## UI Guidelines

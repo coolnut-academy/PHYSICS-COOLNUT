@@ -6,27 +6,18 @@ import Image from "next/image";
 import { Sparkles, Lock, Loader2, RefreshCw } from "lucide-react";
 import ZoneSwitcher, { ContentCategory } from "./ZoneSwitcher";
 import AppGrid from "./AppGrid";
-import { AppData } from "./AppCard";
+import { AppData, toAppData } from "./AppCard";
 import AdminLoginModal from "./AdminLoginModal";
-import { getApps, AppDocument } from "@/lib/firestore";
+import { getApps, getEnabledContentPages, ContentPageDocument, normalizeCategory } from "@/lib/firestore";
+import ContentPageLauncherGrid from "./ContentPageLauncherGrid";
 
-// Convert Firestore AppDocument to AppData format
-function toAppData(doc: AppDocument): AppData {
-    return {
-        id: doc.id || "",
-        name: doc.name,
-        url: doc.url,
-        iconUrl: doc.iconUrl,
-        zone: doc.zone,
-        color: doc.color,
-        isEnabled: doc.isEnabled !== false, // Default to true if undefined
-    };
-}
+
 
 export default function HomeContent() {
     const [currentZone, setCurrentZone] = useState<ContentCategory>("quiz");
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [apps, setApps] = useState<AppData[]>([]);
+    const [pages, setPages] = useState<ContentPageDocument[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const router = useRouter();
@@ -39,6 +30,9 @@ export default function HomeContent() {
             const fetchedApps = await getApps();
             console.log(`Loaded ${fetchedApps.length} items from database`);
             setApps(fetchedApps.map(toAppData));
+
+            const fetchedPages = await getEnabledContentPages();
+            setPages(fetchedPages);
         } catch (err) {
             console.error("Failed to fetch apps:", err);
             setError("ไม่สามารถโหลดข้อมูลจากฐานข้อมูลได้");
@@ -67,12 +61,7 @@ export default function HomeContent() {
         router.push("/admin/dashboard");
     };
 
-    const normalizeCategory = (zone: AppData["zone"]): ContentCategory | "all" => {
-        if (zone === "teacher") return "ebook";
-        if (zone === "student") return "quiz";
-        if (zone === "both") return "app";
-        return zone;
-    };
+
 
     const categoryMeta = {
         app: { label: "App", icon: "A" },
@@ -82,6 +71,7 @@ export default function HomeContent() {
 
     // Filter apps based on current category. Legacy "both" content now belongs to App.
     const filteredApps = apps.filter((app) => {
+        if (app.pageId) return false; // Exclude custom page apps from standard category pages
         const category = normalizeCategory(app.zone);
         return category === currentZone;
     });
@@ -177,6 +167,9 @@ export default function HomeContent() {
 
             {/* Main Content Area */}
             <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-6 sm:py-8">
+                {/* Custom Page Launchers */}
+                <ContentPageLauncherGrid pages={pages} />
+
                 {/* Section Title with Liquid Glass pill */}
                 <div className="mb-6 sm:mb-8">
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/30 backdrop-blur-lg border border-white/40 shadow-sm">

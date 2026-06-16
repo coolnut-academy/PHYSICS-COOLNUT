@@ -17,7 +17,7 @@ import {
     Sparkles,
 } from "lucide-react";
 import { uploadImage } from "@/lib/storage";
-import { AppDocument } from "@/lib/firestore";
+import { AppDocument, ContentPageDocument, normalizeCategory } from "@/lib/firestore";
 import { UploadProgress } from "@/lib/storage";
 import AppCard from "./AppCard";
 
@@ -28,6 +28,7 @@ interface AppFormModalProps {
     onClose: () => void;
     onSubmit: (data: Omit<AppDocument, "id" | "order" | "createdAt" | "updatedAt">) => Promise<void>;
     editingApp?: AppDocument | null;
+    pages?: ContentPageDocument[];
 }
 
 // Gradient color options for apps without custom icons
@@ -43,18 +44,13 @@ const GRADIENT_OPTIONS = [
     { value: "transparent", label: "Transparent", preview: "bg-white border-2 border-dashed border-slate-300" },
 ];
 
-function normalizeCategory(value: Zone): "app" | "ebook" | "quiz" {
-    if (value === "teacher") return "ebook";
-    if (value === "student") return "quiz";
-    if (value === "both") return "app";
-    return value;
-}
 
 export default function AppFormModal({
     isOpen,
     onClose,
     onSubmit,
     editingApp,
+    pages = [],
 }: AppFormModalProps) {
     const [name, setName] = useState("");
     const [url, setUrl] = useState("");
@@ -68,6 +64,10 @@ export default function AppFormModal({
     const [previewFile, setPreviewFile] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [placementMode, setPlacementMode] = useState<"root" | "custom">("root");
+    const [selectedPageId, setSelectedPageId] = useState("");
+    const [selectedTabId, setSelectedTabId] = useState("");
+
     // Populate form when editing
     useEffect(() => {
         if (editingApp) {
@@ -76,6 +76,16 @@ export default function AppFormModal({
             setZone(normalizeCategory(editingApp.zone));
             setIconUrl(editingApp.iconUrl);
             setColor(editingApp.color || GRADIENT_OPTIONS[0].value);
+            
+            if (editingApp.pageId && editingApp.tabId) {
+                setPlacementMode("custom");
+                setSelectedPageId(editingApp.pageId);
+                setSelectedTabId(editingApp.tabId);
+            } else {
+                setPlacementMode("root");
+                setSelectedPageId("");
+                setSelectedTabId("");
+            }
         } else {
             // Reset form for new content
             setName("");
@@ -83,10 +93,25 @@ export default function AppFormModal({
             setZone("app");
             setIconUrl("");
             setColor(GRADIENT_OPTIONS[0].value);
+            setPlacementMode("root");
+            
+            // Auto-select first custom page and first tab if available
+            if (pages && pages.length > 0) {
+                const firstPage = pages[0];
+                setSelectedPageId(firstPage.id || "");
+                if (firstPage.tabs && firstPage.tabs.length > 0) {
+                    setSelectedTabId(firstPage.tabs[0].id);
+                } else {
+                    setSelectedTabId("");
+                }
+            } else {
+                setSelectedPageId("");
+                setSelectedTabId("");
+            }
         }
         setError("");
         setPreviewFile(null);
-    }, [editingApp, isOpen]);
+    }, [editingApp, isOpen, pages]);
 
     // Handle escape key
     useEffect(() => {
@@ -168,15 +193,30 @@ export default function AppFormModal({
             return;
         }
 
+        if (placementMode === "custom") {
+            if (!selectedPageId) {
+                setError("กรุณาเลือกหน้าย่อยเสริม");
+                return;
+            }
+            if (!selectedTabId) {
+                setError("กรุณาเลือกแท็บย่อย");
+                return;
+            }
+        }
+
         setIsSubmitting(true);
         try {
-            await onSubmit({
+            const submitData: Omit<AppDocument, "id" | "order" | "createdAt" | "updatedAt"> = {
                 name: name.trim(),
                 url: url.trim(),
-                zone,
+                zone: placementMode === "custom" ? "app" : zone,
                 iconUrl: iconUrl.trim(),
                 color,
-            });
+                pageId: placementMode === "custom" ? selectedPageId : "",
+                tabId: placementMode === "custom" ? selectedTabId : "",
+            };
+            
+            await onSubmit(submitData);
             onClose();
         } catch (err) {
             console.error("Submit error:", err);
@@ -301,51 +341,147 @@ export default function AppFormModal({
                                 />
                             </div>
 
-                            {/* Category Selection */}
+                            {/* Placement Mode Selection */}
                             <div>
-                                <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-3">
+                                <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-3">
                                     <Tag className="w-4 h-4 opacity-60" />
-                                    หมวดหมู่
+                                    ตำแหน่งการแสดงผล
                                 </label>
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-2 gap-3 mb-4">
                                     <button
                                         type="button"
-                                        onClick={() => setZone("app")}
+                                        onClick={() => setPlacementMode("root")}
                                         disabled={isSubmitting}
-                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "app"
-                                            ? "border-blue-500 bg-blue-50 text-blue-700"
-                                            : "border-slate-200 hover:border-slate-300 text-slate-600"
+                                        className={`p-3.5 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${placementMode === "root"
+                                            ? "border-purple-500 bg-purple-50/50 text-purple-700 font-bold"
+                                            : "border-slate-200 hover:border-slate-300 text-slate-600 font-medium"
                                             }`}
                                     >
-                                        <AppWindow className="w-5 h-5" />
-                                        <span className="text-xs font-medium">App</span>
+                                        <span className="text-xs">หมวดหลักเดิม (App/Ebook/Quiz)</span>
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setZone("ebook")}
-                                        disabled={isSubmitting}
-                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "ebook"
-                                            ? "border-amber-500 bg-amber-50 text-amber-700"
-                                            : "border-slate-200 hover:border-slate-300 text-slate-600"
-                                            }`}
+                                        onClick={() => {
+                                            setPlacementMode("custom");
+                                            if (pages && pages.length > 0 && !selectedPageId) {
+                                                const firstPage = pages[0];
+                                                setSelectedPageId(firstPage.id || "");
+                                                if (firstPage.tabs && firstPage.tabs.length > 0) {
+                                                    setSelectedTabId(firstPage.tabs[0].id);
+                                                }
+                                            }
+                                        }}
+                                        disabled={isSubmitting || pages.length === 0}
+                                        className={`p-3.5 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${
+                                            placementMode === "custom"
+                                                ? "border-purple-500 bg-purple-50/50 text-purple-700 font-bold"
+                                                : "border-slate-200 hover:border-slate-300 text-slate-600 font-medium"
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        title={pages.length === 0 ? "กรุณาสร้างหน้าเสริมก่อน" : ""}
                                     >
-                                        <BookOpen className="w-5 h-5" />
-                                        <span className="text-xs font-medium">Ebook</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setZone("quiz")}
-                                        disabled={isSubmitting}
-                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "quiz"
-                                            ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                            : "border-slate-200 hover:border-slate-300 text-slate-600"
-                                            }`}
-                                    >
-                                        <CircleHelp className="w-5 h-5" />
-                                        <span className="text-xs font-medium">Quiz</span>
+                                        <span className="text-xs">หน้าที่สร้างเอง (Custom Page)</span>
                                     </button>
                                 </div>
                             </div>
+
+                            {placementMode === "root" ? (
+                                /* Category Selection */
+                                <div>
+                                    <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-3">
+                                        หมวดหมู่หลัก
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setZone("app")}
+                                            disabled={isSubmitting}
+                                            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "app"
+                                                ? "border-blue-500 bg-blue-50 text-blue-700"
+                                                : "border-slate-200 hover:border-slate-300 text-slate-600"
+                                                }`}
+                                        >
+                                            <AppWindow className="w-5 h-5" />
+                                            <span className="text-xs font-medium">App</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setZone("ebook")}
+                                            disabled={isSubmitting}
+                                            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "ebook"
+                                                ? "border-amber-500 bg-amber-50 text-amber-700"
+                                                : "border-slate-200 hover:border-slate-300 text-slate-600"
+                                                }`}
+                                        >
+                                            <BookOpen className="w-5 h-5" />
+                                            <span className="text-xs font-medium">Ebook</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setZone("quiz")}
+                                            disabled={isSubmitting}
+                                            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${zone === "quiz"
+                                                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                                : "border-slate-200 hover:border-slate-300 text-slate-600"
+                                                }`}
+                                        >
+                                            <CircleHelp className="w-5 h-5" />
+                                            <span className="text-xs font-medium">Quiz</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Custom Page Dropdowns */
+                                <div className="space-y-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                                                หน้าเสริมหลัก
+                                            </label>
+                                            <select
+                                                value={selectedPageId}
+                                                onChange={(e) => {
+                                                    const pageId = e.target.value;
+                                                    setSelectedPageId(pageId);
+                                                    const pageObj = pages.find((p) => p.id === pageId);
+                                                    if (pageObj && pageObj.tabs && pageObj.tabs.length > 0) {
+                                                        setSelectedTabId(pageObj.tabs[0].id);
+                                                    } else {
+                                                        setSelectedTabId("");
+                                                    }
+                                                }}
+                                                disabled={isSubmitting}
+                                                className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white outline-none text-sm font-semibold focus:border-purple-400"
+                                            >
+                                                {pages.map((p) => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                                                แท็บย่อยภายในหน้า
+                                            </label>
+                                            <select
+                                                value={selectedTabId}
+                                                onChange={(e) => setSelectedTabId(e.target.value)}
+                                                disabled={isSubmitting}
+                                                className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white outline-none text-sm font-semibold focus:border-purple-400"
+                                            >
+                                                {pages
+                                                    .find((p) => p.id === selectedPageId)
+                                                    ?.tabs.map((t) => (
+                                                        <option key={t.id} value={t.id}>
+                                                            {t.title}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Icon Upload */}
                             <div>

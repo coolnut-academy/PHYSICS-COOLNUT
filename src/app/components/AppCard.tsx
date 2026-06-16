@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { ExternalLink, Ban } from "lucide-react";
 
+import { AppDocument } from "@/lib/firestore";
+
 export interface AppData {
     id: string;
     name: string;
@@ -11,6 +13,24 @@ export interface AppData {
     zone: "app" | "ebook" | "quiz" | "student" | "teacher" | "both";
     color?: string;
     isEnabled?: boolean;
+    pageId?: string;
+    tabId?: string;
+    order?: number;
+}
+
+export function toAppData(doc: AppDocument): AppData {
+    return {
+        id: doc.id || "",
+        name: doc.name,
+        url: doc.url,
+        iconUrl: doc.iconUrl,
+        zone: doc.zone,
+        color: doc.color,
+        isEnabled: doc.isEnabled !== false,
+        pageId: doc.pageId,
+        tabId: doc.tabId,
+        order: doc.order,
+    };
 }
 
 interface AppCardProps {

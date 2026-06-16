@@ -19,6 +19,7 @@ import {
     RefreshCw,
     ToggleLeft,
     ToggleRight,
+    Layout,
 } from "lucide-react";
 import {
     getApps,
@@ -27,9 +28,17 @@ import {
     deleteApp,
     reorderApp,
     AppDocument,
+    getContentPages,
+    addContentPage,
+    updateContentPage,
+    deleteContentPage,
+    reorderContentPage,
+    ContentPageDocument,
 } from "@/lib/firestore";
 import { deleteImage } from "@/lib/storage";
 import AppFormModal from "@/app/components/AppFormModal";
+import ContentPageManager from "@/app/components/ContentPageManager";
+import ContentPageFormModal from "@/app/components/ContentPageFormModal";
 
 // Confirmation Modal Component
 function ConfirmModal({
@@ -143,6 +152,12 @@ export default function AdminDashboard() {
     const [error, setError] = useState("");
     const router = useRouter();
 
+    const [activeTab, setActiveTab] = useState<"cards" | "pages">("cards");
+    const [pages, setPages] = useState<ContentPageDocument[]>([]);
+    const [isPageFormOpen, setIsPageFormOpen] = useState(false);
+    const [editingPage, setEditingPage] = useState<ContentPageDocument | null>(null);
+    const [filterPlacement, setFilterPlacement] = useState<string>("all");
+
     // Fetch apps from Firestore
     const fetchApps = useCallback(async () => {
         try {
@@ -152,6 +167,17 @@ export default function AdminDashboard() {
         } catch (err) {
             console.error("Failed to fetch apps:", err);
             setError("ไม่สามารถโหลดข้อมูลแอปได้");
+        }
+    }, []);
+
+    const fetchPages = useCallback(async () => {
+        try {
+            const fetchedPages = await getContentPages();
+            setPages(fetchedPages);
+            setError("");
+        } catch (err) {
+            console.error("Failed to fetch pages:", err);
+            setError("ไม่สามารถโหลดข้อมูลหน้าย่อยได้");
         }
     }, []);
 
@@ -167,6 +193,7 @@ export default function AdminDashboard() {
                 } else {
                     setIsLoading(false);
                     fetchApps();
+                    fetchPages();
                 }
             } catch (error) {
                 console.error("Auth check failed:", error);
@@ -175,7 +202,7 @@ export default function AdminDashboard() {
         };
 
         checkAuth();
-    }, [router, fetchApps]);
+    }, [router, fetchApps, fetchPages]);
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
@@ -266,6 +293,70 @@ export default function AdminDashboard() {
         }
     };
 
+    const handlePageFormSubmit = async (
+        data: Omit<ContentPageDocument, "id" | "order" | "createdAt" | "updatedAt">
+    ) => {
+        try {
+            if (editingPage) {
+                await updateContentPage(editingPage.id!, data);
+            } else {
+                await addContentPage(data);
+            }
+            await fetchPages();
+            setEditingPage(null);
+        } catch (err) {
+            console.error("Page save failed:", err);
+            setError("บันทึกหน้าย่อยไม่สำเร็จ");
+        }
+    };
+
+    const handleDeletePage = async (page: ContentPageDocument) => {
+        try {
+            await deleteContentPage(page.id!);
+            await fetchPages();
+        } catch (err) {
+            console.error("Page delete failed:", err);
+            setError("ลบหน้าย่อยไม่สำเร็จ");
+        }
+    };
+
+    const handleTogglePageEnabled = async (page: ContentPageDocument) => {
+        try {
+            const newEnabledState = page.isEnabled === false ? true : false;
+            await updateContentPage(page.id!, { isEnabled: newEnabledState });
+            await fetchPages();
+        } catch (err) {
+            console.error("Toggle page enabled failed:", err);
+            setError("เปลี่ยนสถานะหน้าย่อยไม่สำเร็จ");
+        }
+    };
+
+    const handleReorderPage = async (pageId: string, direction: "up" | "down") => {
+        try {
+            await reorderContentPage(pageId, direction);
+            await fetchPages();
+        } catch (err) {
+            console.error("Page reorder failed:", err);
+            setError("เรียงลำดับหน้าย่อยไม่สำเร็จ");
+        }
+    };
+
+    const openEditPageModal = (page: ContentPageDocument) => {
+        setEditingPage(page);
+        setIsPageFormOpen(true);
+    };
+
+    const openAddPageModal = () => {
+        setEditingPage(null);
+        setIsPageFormOpen(true);
+    };
+
+    const filteredApps = apps.filter((app) => {
+        if (filterPlacement === "all") return true;
+        if (filterPlacement === "root") return !app.pageId;
+        return app.pageId === filterPlacement;
+    });
+
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
@@ -306,7 +397,7 @@ export default function AdminDashboard() {
                         {/* Actions */}
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={fetchApps}
+                                onClick={() => { fetchApps(); fetchPages(); }}
                                 className="p-2.5 rounded-xl bg-white/60 backdrop-blur-sm border border-white/60 text-slate-600 hover:bg-white/80 hover:text-slate-800 transition-all duration-200 hover:shadow-md"
                                 title="รีเฟรชข้อมูล"
                             >
@@ -331,30 +422,88 @@ export default function AdminDashboard() {
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Segment Switcher */}
+                <div className="flex gap-2 mb-8 bg-slate-100 p-1.5 rounded-2xl w-fit">
+                    <button
+                        onClick={() => setActiveTab("cards")}
+                        className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                            activeTab === "cards"
+                                ? "bg-white text-slate-800 shadow-md"
+                                : "text-slate-500 hover:text-slate-800"
+                        }`}
+                    >
+                        <AppWindow className="w-4 h-4 text-purple-500" />
+                        จัดการการ์ด
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("pages")}
+                        className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                            activeTab === "pages"
+                                ? "bg-white text-slate-800 shadow-md"
+                                : "text-slate-500 hover:text-slate-800"
+                        }`}
+                    >
+                        <Layout className="w-4 h-4 text-cyan-500" />
+                        จัดการหน้าเสริม
+                    </button>
+                </div>
+
                 {/* Page Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                            <AppWindow className="w-7 h-7 text-purple-600" />
-                            จัดการเนื้อหาฟิสิกส์
+                            {activeTab === "cards" ? (
+                                <>
+                                    <AppWindow className="w-7 h-7 text-purple-600" />
+                                    จัดการเนื้อหาฟิสิกส์
+                                </>
+                            ) : (
+                                <>
+                                    <Layout className="w-7 h-7 text-cyan-600" />
+                                    จัดการหน้าย่อยเสริม
+                                </>
+                            )}
                         </h2>
-                        <p className="text-slate-500 mt-1">
-                            เพิ่ม แก้ไข ลบ หรือเรียงลำดับบทเรียนและตำรา
+                        <p className="text-slate-500 mt-1 font-medium">
+                            {activeTab === "cards" 
+                                ? "เพิ่ม แก้ไข ลบ หรือเรียงลำดับบทเรียนและตำรา" 
+                                : "สร้างหน้าหลักเสริม เช่น เมนูโครงงาน, คลังคู่มือ ที่มีเมนูแท็บย่อยยืดหยุ่น"}
                         </p>
                     </div>
 
-                    {/* Add New Button */}
-                    <button
-                        onClick={openAddModal}
-                        className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-white transition-all hover:shadow-lg hover:-translate-y-0.5"
-                        style={{
-                            background: "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
-                            boxShadow: "0 8px 30px rgba(37, 99, 235, 0.4)",
-                        }}
-                    >
-                        <Plus className="w-5 h-5" />
-                        เพิ่มแอปใหม่
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {activeTab === "cards" && (
+                            <select
+                                value={filterPlacement}
+                                onChange={(e) => setFilterPlacement(e.target.value)}
+                                className="px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 bg-white/70 outline-none text-sm font-semibold transition-all focus:border-purple-400"
+                            >
+                                <option value="all">แสดงตำแหน่งทั้งหมด</option>
+                                <option value="root">เฉพาะหมวดหลักเดิม</option>
+                                {pages.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                        หน้า: {p.title}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                        
+                        <button
+                            onClick={activeTab === "cards" ? openAddModal : openAddPageModal}
+                            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white transition-all hover:shadow-lg hover:-translate-y-0.5"
+                            style={{
+                                background: activeTab === "cards"
+                                    ? "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)"
+                                    : "linear-gradient(135deg, #0ea5e9 0%, #a855f7 100%)",
+                                boxShadow: activeTab === "cards"
+                                    ? "0 8px 30px rgba(37, 99, 235, 0.4)"
+                                    : "0 8px 30px rgba(14, 165, 233, 0.3)",
+                            }}
+                        >
+                            <Plus className="w-5 h-5" />
+                            {activeTab === "cards" ? "เพิ่มแอปใหม่" : "สร้างหน้าใหม่"}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Error Message */}
@@ -365,43 +514,57 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* Apps Table/List */}
-                <div className="glass-card overflow-hidden">
-                    {apps.length === 0 ? (
-                        /* Empty State */
-                        <div className="p-12 text-center">
-                            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
-                                <Sparkles className="w-10 h-10 text-slate-400" />
+                {/* Conditional Manager Panels */}
+                {activeTab === "pages" ? (
+                    <ContentPageManager
+                        pages={pages}
+                        apps={apps}
+                        onAddClick={openAddPageModal}
+                        onEditClick={openEditPageModal}
+                        onDeletePage={handleDeletePage}
+                        onTogglePageEnabled={handleTogglePageEnabled}
+                        onReorderPage={handleReorderPage}
+                    />
+                ) : (
+                    /* Apps Table/List */
+                    <div className="glass-card overflow-hidden">
+                        {filteredApps.length === 0 ? (
+                            /* Empty State */
+                            <div className="p-12 text-center">
+                                <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
+                                    <Sparkles className="w-10 h-10 text-slate-400" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                                    {filterPlacement === "all" ? "ยังไม่มีเนื้อหาฟิสิกส์" : "ไม่พบเนื้อหาสำหรับตำแหน่งที่เลือก"}
+                                </h3>
+                                <p className="text-slate-500 mb-6 font-medium">
+                                    {filterPlacement === "all" 
+                                        ? "เริ่มต้นด้วยการเพิ่มบทเรียนหรือตำราแรกของคุณ" 
+                                        : "ยังไม่มีบทเรียนที่เชื่อมโยงกับตำแหน่งการจัดวางนี้"}
+                                </p>
+                                <button
+                                    onClick={openAddModal}
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-100 text-purple-700 font-bold hover:bg-purple-200 transition-all"
+                                >
+                                    <Plus className="w-5 h-5" />
+                                    เพิ่มเนื้อหาใหม่
+                                </button>
                             </div>
-                            <h3 className="text-lg font-semibold text-slate-700 mb-2">
-                                ยังไม่มีเนื้อหาฟิสิกส์
-                            </h3>
-                            <p className="text-slate-500 mb-6">
-                                เริ่มต้นด้วยการเพิ่มบทเรียนหรือตำราแรกของคุณ
-                            </p>
-                            <button
-                                onClick={openAddModal}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-100 text-purple-700 font-medium hover:bg-purple-200 transition-all"
-                            >
-                                <Plus className="w-5 h-5" />
-                                เพิ่มเนื้อหาใหม่
-                            </button>
-                        </div>
-                    ) : (
-                        /* Apps List */
-                        <div className="divide-y divide-slate-100">
-                            {/* Table Header (Desktop) */}
-                            <div className="hidden md:grid md:grid-cols-14 gap-4 px-6 py-3 bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                <div className="col-span-1 text-center">#</div>
-                                <div className="col-span-4">แอป</div>
-                                <div className="col-span-2">โซน</div>
-                                <div className="col-span-2 text-center">สถานะ</div>
-                                <div className="col-span-2 text-center">เรียงลำดับ</div>
-                                <div className="col-span-3 text-right">การจัดการ</div>
-                            </div>
+                        ) : (
+                            /* Apps List */
+                            <div className="divide-y divide-slate-100">
+                                {/* Table Header (Desktop) */}
+                                <div className="hidden md:grid md:grid-cols-14 gap-4 px-6 py-3 bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    <div className="col-span-1 text-center">#</div>
+                                    <div className="col-span-4">แอป</div>
+                                    <div className="col-span-2">โซน/ตำแหน่ง</div>
+                                    <div className="col-span-2 text-center">สถานะ</div>
+                                    <div className="col-span-2 text-center">เรียงลำดับ</div>
+                                    <div className="col-span-3 text-right">การจัดการ</div>
+                                </div>
 
-                            {/* App Rows */}
-                            {apps.map((app, index) => (
+                                {/* App Rows */}
+                                {filteredApps.map((app, index) => (
                                 <div
                                     key={app.id}
                                     className={`grid grid-cols-1 md:grid-cols-14 gap-4 px-4 sm:px-6 py-4 hover:bg-slate-50/50 transition-colors items-center ${app.isEnabled === false ? "opacity-60" : ""}`}
@@ -450,7 +613,17 @@ export default function AdminDashboard() {
 
                                     {/* Zone Badge */}
                                     <div className="md:col-span-2 flex md:justify-start">
-                                        <ZoneBadge zone={app.zone} />
+                                        {app.pageId ? (
+                                            <span className="inline-flex flex-col text-xs font-bold text-purple-700 bg-purple-50 border border-purple-100 px-2.5 py-1 rounded-full">
+                                                <span className="text-[9px] text-purple-400 uppercase tracking-wide">หน้าเสริม</span>
+                                                <span>{pages.find(p => p.id === app.pageId)?.title || "ไม่พบหน้า"}</span>
+                                                <span className="text-[10px] text-slate-500 font-medium mt-0.5">
+                                                    แท็บ: {pages.find(p => p.id === app.pageId)?.tabs.find(t => t.id === app.tabId)?.title || "ไม่พบแท็บ"}
+                                                </span>
+                                            </span>
+                                        ) : (
+                                            <ZoneBadge zone={app.zone} />
+                                        )}
                                     </div>
 
                                     {/* Enable/Disable Toggle */}
@@ -493,7 +666,7 @@ export default function AdminDashboard() {
                                         </button>
                                         <button
                                             onClick={() => handleReorder(app.id!, "down")}
-                                            disabled={index === apps.length - 1 || isReordering === app.id}
+                                            disabled={index === filteredApps.length - 1 || isReordering === app.id}
                                             className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                                             title="เลื่อนลง"
                                         >
@@ -527,6 +700,7 @@ export default function AdminDashboard() {
                         </div>
                     )}
                 </div>
+                )}
 
                 {/* Stats Bar */}
                 {apps.length > 0 && (
@@ -560,6 +734,19 @@ export default function AdminDashboard() {
                 }}
                 onSubmit={handleFormSubmit}
                 editingApp={editingApp}
+                pages={pages}
+            />
+
+            {/* Content Page Form Modal */}
+            <ContentPageFormModal
+                isOpen={isPageFormOpen}
+                onClose={() => {
+                    setIsPageFormOpen(false);
+                    setEditingPage(null);
+                }}
+                onSubmit={handlePageFormSubmit}
+                editingPage={editingPage}
+                apps={apps}
             />
 
             {/* Delete Confirmation Modal */}
