@@ -76,6 +76,7 @@ export default function HomeContent() {
         return category === currentZone;
     });
     const currentCategory = categoryMeta[currentZone];
+    const shouldShowContentPageLaunchers = currentZone === "app";
 
     return (
         <main className="min-h-screen flex flex-col pb-8">
@@ -168,7 +169,7 @@ export default function HomeContent() {
             {/* Main Content Area */}
             <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-6 sm:py-8">
                 {/* Custom Page Launchers */}
-                <ContentPageLauncherGrid pages={pages} />
+                {shouldShowContentPageLaunchers && <ContentPageLauncherGrid pages={pages} />}
 
                 {/* Section Title with Liquid Glass pill */}
                 <div className="mb-6 sm:mb-8">
